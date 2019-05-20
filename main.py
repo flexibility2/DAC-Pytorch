@@ -97,25 +97,27 @@ def main():
 ###################================================================================#####################################
 
 class LossFunc(nn.Module):
-    def __init__(self):
+    def __init__(self,my_u,my_l,eps):
         super(LossFunc,self).__init__()
-
+        self.my_u = my_u
+        self.my_l = my_l
+        self.eps = eps
 
     def forward(self, label_feat):
-        label_feat_norm = l2_norm(label_feat)
+        label_feat_norm = self.l2_norm(label_feat)
         sim_mat = torch.mm(label_feat_norm, label_feat_norm.t())
 
-        pos_loc = torch.gt(sim_mat, my_u).type(torch.float)
-        neg_loc = torch.lt(sim_mat, my_l).type(torch.float)
+        pos_loc = torch.gt(sim_mat, self.my_u).type(torch.float)
+        neg_loc = torch.lt(sim_mat, self.my_l).type(torch.float)
 
-        pos_entropy = torch.mul(-torch.log(torch.clamp(sim_mat, eps, 1.0)), pos_loc)
-        neg_entropy = torch.mul(-torch.log(torch.clamp((1 - sim_mat), eps, 1.0)), neg_loc)
+        pos_entropy = torch.mul(-torch.log(torch.clamp(sim_mat, self.eps, 1.0)), pos_loc)
+        neg_entropy = torch.mul(-torch.log(torch.clamp((1 - sim_mat), self.eps, 1.0)), neg_loc)
 
         loss_sum = torch.mean(pos_entropy) + torch.mean(neg_entropy)
 
         return loss_sum
 
-    def l2_norm(input):
+    def l2_norm(self,input):
         input_size = input.size()
         buffer = torch.pow(input, 2)
 
@@ -156,9 +158,8 @@ def my_train(model,optimizer_model,trainloader,use_gpu):
             _,label_feat = model(data)
 
             # label_feat_norm = F.normalize(label_feat,p=2,dim=1)
-            my_loss_func = LossFunc()
+            my_loss_func = LossFunc(my_u,my_l,eps)
             loss_sum = my_loss_func(label_feat)
-
 
             optimizer_model.zero_grad()
             loss_sum.backward()
