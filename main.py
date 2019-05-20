@@ -95,18 +95,38 @@ def main():
     print("Finished. Total elapsed time (h:m:s): {}".format(elapsed))
 
 ###################================================================================#####################################
-def l2_norm(input):
-    input_size = input.size()
-    buffer = torch.pow(input, 2)
 
-    normp = torch.sum(buffer, 1).add_(1e-10)
-    norm = torch.sqrt(normp)
+class LossFunc(nn.Module):
+    def __init__(self):
+        super(LossFunc,self).__init__()
 
-    _output = torch.div(input, norm.view(-1, 1).expand_as(input))
 
-    output = _output.view(input_size)
+    def forward(self, label_feat):
+        label_feat_norm = l2_norm(label_feat)
+        sim_mat = torch.mm(label_feat_norm, label_feat_norm.t())
 
-    return output
+        pos_loc = torch.gt(sim_mat, my_u).type(torch.float)
+        neg_loc = torch.lt(sim_mat, my_l).type(torch.float)
+
+        pos_entropy = torch.mul(-torch.log(torch.clamp(sim_mat, eps, 1.0)), pos_loc)
+        neg_entropy = torch.mul(-torch.log(torch.clamp((1 - sim_mat), eps, 1.0)), neg_loc)
+
+        loss_sum = torch.mean(pos_entropy) + torch.mean(neg_entropy)
+
+        return loss_sum
+
+    def l2_norm(input):
+        input_size = input.size()
+        buffer = torch.pow(input, 2)
+
+        normp = torch.sum(buffer, 1).add_(1e-10)
+        norm = torch.sqrt(normp)
+
+        _output = torch.div(input, norm.view(-1, 1).expand_as(input))
+
+        output = _output.view(input_size)
+
+        return output
 
 
 
@@ -136,16 +156,10 @@ def my_train(model,optimizer_model,trainloader,use_gpu):
             _,label_feat = model(data)
 
             # label_feat_norm = F.normalize(label_feat,p=2,dim=1)
-            label_feat_norm = l2_norm(label_feat)
-            sim_mat = torch.mm(label_feat_norm,label_feat_norm.t())
+            my_loss_func = LossFunc()
+            loss_sum = my_loss_func(label_feat)
 
-            pos_loc = torch.gt(sim_mat,my_u).type(torch.float)
-            neg_loc = torch.lt(sim_mat,my_l).type(torch.float)
 
-            pos_entropy = torch.mul(-torch.log(torch.clamp(sim_mat,eps,1.0)),pos_loc)
-            neg_entropy = torch.mul(-torch.log(torch.clamp((1-sim_mat),eps,1.0)),neg_loc)
-
-            loss_sum = torch.mean(pos_entropy)+torch.mean(neg_entropy)
             optimizer_model.zero_grad()
             loss_sum.backward()
             optimizer_model.step()
