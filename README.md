@@ -6,3 +6,4 @@
 
 ### Reference
 [DAC-Tensorflow](https://github.com/HongtaoYang/DAC-tensorflow)
+[DAc-Tensorflow2](https://github.com/graykode/DAC)
