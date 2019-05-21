@@ -5,5 +5,5 @@
 > python model3-1.py 
 
 ### Reference
-[DAC-Tensorflow](https://github.com/HongtaoYang/DAC-tensorflow)
+[DAC-Tensorflow](https://github.com/HongtaoYang/DAC-tensorflow)<br/>
 [DAc-Tensorflow2](https://github.com/graykode/DAC)
